@@ -1,7 +1,7 @@
-﻿// Glowmelan service worker - app offline bhi khule. Weather API cache nahi hota.
-const CACHE = 'glowmelan-v7';
+// Glowmelan service worker - app offline bhi khule. Weather API cache nahi hota.
+const CACHE = 'glowmelan-v8';
 const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable.png', './privacy.html', './terms.html', './refund.html',
-  './fonts/instrument-serif.woff2', './fonts/instrument-serif-italic.woff2', './fonts/space-grotesk.woff2'];
+  './instrument-serif.woff2', './instrument-serif-italic.woff2', './space-grotesk.woff2'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
