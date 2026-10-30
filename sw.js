@@ -1,5 +1,5 @@
 // Glowmelan service worker - app offline bhi khule. Weather API cache nahi hota.
-const CACHE = 'glowmelan-v8';
+const CACHE = 'glowmelan-v9';
 const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable.png', './privacy.html', './terms.html', './refund.html',
   './instrument-serif.woff2', './instrument-serif-italic.woff2', './space-grotesk.woff2'];
 

@@ -404,7 +404,9 @@ const CONFIG = {
   // LIVE karte waqt false karo — warna test-card wali subscriptions bhi Plus de dengi
   allowTestPayments: true
 };
-const AUTH_READY = () => !!(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey);                    // login ke liye
+// App ab poori MUFT hai (30 Oct 2026): login, payment aur cloud backup band. Wapas lana ho to FREE_APP = false.
+const FREE_APP = true;
+const AUTH_READY = () => !FREE_APP && !!(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey);      // login ke liye
 const READY = () => AUTH_READY() && !!(CONFIG.checkout.monthly && CONFIG.checkout.yearly);     // payment ke liye
 
 /* ========== ACCOUNT (Supabase Auth — email pe 6-digit code, password nahi) ========== */
@@ -456,6 +458,7 @@ async function signOut(){
 /* ========== PLUS STATUS (server se — Lemon Squeezy webhook likhta hai, app sirf padhti hai) ========== */
 const PRICE = { monthly: { p:'$4.99', per:'/month', note:'Billed monthly' }, yearly: { p:'$34.99', per:'/year', note:'Just $2.92 a month · save 40%' } };
 function isPlus(){
+  if (FREE_APP) return true;   // sab features sab ke liye
   const s = S.sub; if (!s || !auth.get()) return false;                 // login ke bina Plus nahi
   if (Date.now() - s.checkedAt > 14 * 86400000) return false;          // 14 din se server se check nahi hua
   if (['on_trial','active','past_due'].includes(s.status)) return true;
@@ -777,7 +780,7 @@ function progressTab(){
   const locked = !isPlus() && all.length >= 1;   // pehli photo free, baaqi Plus
   const list = all.filter(p => (p.side || 'front') === photoSide), last = list[list.length-1], first = list[0];   // compare sirf same side
   return `<div class="fade" style="display:flex;flex-direction:column;gap:16px">
-    <div class="top"><h2>Progress</h2>${isPlus()?'<span class="chip">Plus</span>':''}</div>
+    <div class="top"><h2>Progress</h2>${isPlus() && !FREE_APP ?'<span class="chip">Plus</span>':''}</div>
     ${locked ? `${photoMsg ? `<div class="note" style="${photoMsg.light==='good'?'background:#17221A;border-color:#284A33;color:#CFEFD9':''}">${photoMsg.light==='good'?'':icon.warn}<div>${esc(photoMsg.advice)}</div></div>` : ''}
       ${paywall('Keep tracking. See your spots fade.')}` : `
     <div class="card" style="display:flex;flex-direction:column;gap:12px">
@@ -912,7 +915,7 @@ function learnTab(){
       <button class="link" data-act="wipe" style="color:#F2A07A;align-self:center">Delete all data</button>
     </div>
     <p class="small" style="text-align:center">Glowmelan gives general guidance, not a medical diagnosis.</p>
-    <p class="small" style="text-align:center"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="refund.html">Refunds</a></p>
+    <p class="small" style="text-align:center"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>${FREE_APP ? '' : ' · <a href="refund.html">Refunds</a>'}</p>
   </div>`;
 }
 let backupMsg = '';
@@ -1103,8 +1106,8 @@ $app.addEventListener('click', e => {
   if (b.dataset.act === 'install' && installEvt){ installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; render(); }); return; }
   if (b.dataset.act === 'backup'){ saveBackup(); return; }
   if (b.dataset.act === 'wipe'){
-    if (!confirm('Delete your profile, routine, streak and all photos from this phone' + (auth.get() ? ', and your cloud backup' : '') + '? This cannot be undone.')) return;
-    const au = auth.get();
+    const au = AUTH_READY() ? auth.get() : null;
+    if (!confirm('Delete your profile, routine, streak and all photos from this phone' + (au ? ', and your cloud backup' : '') + '? This cannot be undone.')) return;
     if (au) validToken().then(tok => tok && supa('/rest/v1/user_data?user_id=eq.' + encodeURIComponent(au.uid), { method:'DELETE', headers: supaHeaders(tok) })).catch(() => {});   // cloud backup bhi
     store.clear(); photos.clear(); auth.set(null); syncDown.done = false; lastUploaded = null; clearTimeout(syncTimer);
     S = { profile:null }; draft = { tone:null, answers:{} }; tab = 'today'; editMode = false; go('welcome'); return;
@@ -1227,8 +1230,7 @@ trackView(); track(S.profile ? (isStandalone() ? 'open-app' : 'open-returning') 
 loadPhotos();
 // Browser se kaho ke data khud na mitaye (Safari 7 din baad mita sakta hai)
 if (S.profile && navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(p => p || navigator.storage.persist()).catch(() => {});
-refreshSub();
-afterCheckout();
+if (!FREE_APP){ refreshSub(); afterCheckout(); }
 loadWeather();
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
